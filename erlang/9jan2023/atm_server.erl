@@ -1,0 +1,54 @@
+-module(atm_server).
+-behaviour(gen_server).
+
+%% API
+-export([start/0, check_balance/1, withdraw/2]).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+
+-define(SERVER, ?MODULE).
+
+start() ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+check_balance(AccountNumber) ->
+    gen_server:call(?SERVER, {check_balance, AccountNumber}).
+
+withdraw(AccountNumber, Amount) ->
+    gen_server:call(?SERVER, {withdraw, AccountNumber, Amount}).
+
+%% gen_server callbacks
+init([]) ->
+    % Load initial account balances from a database or file
+    AccountBalances = 100000,% ...
+    {ok, AccountBalances}.
+
+handle_call({check_balance, AccountNumber}, _From, AccountBalances) ->
+    Balance = maps:get(AccountNumber, AccountBalances, 0),
+    {reply, Balance, AccountBalances};
+handle_call({withdraw, AccountNumber, Amount}, _From, AccountBalances) ->
+    % Check if account has sufficient balance
+    Balance = maps:get(AccountNumber, AccountBalances, 0),
+    if
+        Balance >= Amount ->
+            NewBalance = Balance - Amount,
+            NewAccountBalances = maps:update(AccountNumber, NewBalance, AccountBalances),
+            {reply, ok, NewAccountBalances};
+        true ->
+            {reply, {error, insufficient_balance}, AccountBalances}
+    end;
+handle_call(_Request, _From, State) ->
+    {reply, {error, invalid_request}, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.

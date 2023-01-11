@@ -1,0 +1,38 @@
+-module(printer).
+-behaviour(gen_server).
+
+-export([start_link/0]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3,send_message/0]).
+
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+init([]) ->
+    
+    {ok, []}.
+
+send_message() ->
+    gen_server:call(printer, send_message).
+
+
+handle_call(send_message, _From, State) ->
+    gen_server:cast(sender, message),
+    gen_server:call(sender, message),
+    {reply, ok, State};
+
+handle_call(message, _From, State) ->
+    io:format("Call message: ~p ~p ~n" ,[receiver,call]),
+    {reply,received,State}.
+
+handle_cast(message, State) ->
+    io:format("Received message: ~p ~p ~n", [receiver,side]),
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
